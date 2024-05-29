@@ -4,6 +4,7 @@ package deck
 
 import (
 	"fmt"
+	"math/rand"
 	"sort"
 )
 
@@ -72,6 +73,11 @@ func (c Card) String() string {
 // 	return a[i].Suit < a[j].Suit
 // }
 
+// New returns a new deck as a slice of cards.
+// With no options specified, it will be a standard
+// 52-card deck sorted Spade, Diamond, Club, Hearts
+// with ranks in each suit sorted in ascending order
+// (A, 2,...,10, J, Q, K).
 func New(options ...func([]Card) []Card) []Card {
 	deck := make([]Card, deckSize)
 
@@ -90,7 +96,7 @@ func New(options ...func([]Card) []Card) []Card {
 	return deck
 }
 
-// WithJokers returns a func that adds j-many jokers to deck.
+// WithJokers wraps in closure a func that appends j-many jokers to deck.
 func WithJokers(j int) func([]Card) []Card {
 	return func(deck []Card) []Card {
 		for i := 0; i < j; i++ {
@@ -102,13 +108,96 @@ func WithJokers(j int) func([]Card) []Card {
 
 // DeckSorter is a user-defined function
 // that wraps a less func in closure
-// whose signature matches that of sort.Interface Less function
+// whose signature must match that of sort.Interface Less function
 type DeckSorter func([]Card) func(i, j int) bool
 
-func WithSort(sorter DeckSorter) func([]Card) []Card {
+// WithSorter wraps in closure a func that sorts the deck
+// using the user-defined less func that sorter returns.
+// Use WithSorter to implement a custom sorting that
+// WithSortBy can't provide.
+func WithSorter(sorter DeckSorter) func([]Card) []Card {
 	return func(deck []Card) []Card {
 		lessFn := sorter(deck)
 		sort.Slice(deck, lessFn)
 		return deck
 	}
+}
+
+type SortConfig struct {
+	// suits are sorted in the order they are found in Suits
+	// e.g. the suit at Suits[0] is sorted before the one at Suits[1]
+	Suits []Suit
+	// sort ranks in descending order if set to true.
+	// default is sort in ascending order.
+	RanksDesc bool
+	// the deck is sorted by rank if set to true. default is sort by suit.
+	ByRank bool
+}
+
+// WithSortBy allows sorting by a user-defined order.
+// Check out SortConfig for details.
+func WithSortBy(sc SortConfig) func([]Card) []Card {
+	type cOrder struct {
+		Card
+		order int
+	}
+
+	setOrder := func(c cOrder) cOrder {
+		switch c.Suit {
+		case sc.Suits[0]:
+			c.order = 0
+		case sc.Suits[1]:
+			c.order = 1
+		case sc.Suits[2]:
+			c.order = 2
+		case sc.Suits[3]:
+			c.order = 3
+		case sc.Suits[4]:
+			c.order = 4
+		}
+		return c
+	}
+
+	lessWrapper := func(d []Card) func(i int, j int) bool {
+		return func(i int, j int) bool {
+			ci, cj := cOrder{d[i], 0}, cOrder{d[j], 0}
+			ci, cj = setOrder(ci), setOrder(cj)
+
+			// sort by rank
+			if sc.ByRank {
+				if ci.Rank == cj.Rank {
+					return ci.order < cj.order
+				}
+				if sc.RanksDesc {
+					return ci.Rank > cj.Rank
+				} else {
+					return ci.Rank < cj.Rank
+				}
+			}
+
+			// sort by suit
+			if ci.Suit == cj.Suit {
+				if sc.RanksDesc {
+					return ci.Rank > cj.Rank
+				} else {
+					return ci.Rank < cj.Rank
+				}
+			}
+			return ci.order < cj.order
+		}
+	}
+
+	return func(d []Card) []Card {
+		sort.Slice(d, lessWrapper(d))
+		return d
+	}
+}
+
+// Shuffle
+
+func Shuffle(d []Card) []Card {
+	rand.Shuffle(len(d), func(i, j int) {
+		d[i], d[j] = d[j], d[i]
+	})
+	return d
 }
