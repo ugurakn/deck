@@ -4,6 +4,7 @@ package deck
 
 import (
 	"fmt"
+	"sort"
 )
 
 const deckSize = 52
@@ -16,6 +17,7 @@ const (
 	Diamond
 	Club
 	Heart
+	Joker // special
 )
 
 // card ranks Ace, Two,...,Ten, J, Q, K.
@@ -53,21 +55,24 @@ type Card struct {
 }
 
 func (c Card) String() string {
+	if c.Suit == Joker {
+		return "Joker"
+	}
 	return fmt.Sprintf("%s of %ss", c.Rank, c.Suit)
 }
 
-type SortByRank []Card
+// type SortByRank []Card
 
-func (a SortByRank) Len() int      { return len(a) }
-func (a SortByRank) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a SortByRank) Less(i, j int) bool {
-	if a[i].Suit == a[j].Suit {
-		return a[i].Rank < a[j].Rank
-	}
-	return a[i].Suit < a[j].Suit
-}
+// func (a SortByRank) Len() int      { return len(a) }
+// func (a SortByRank) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+// func (a SortByRank) Less(i, j int) bool {
+// 	if a[i].Suit == a[j].Suit {
+// 		return a[i].Rank < a[j].Rank
+// 	}
+// 	return a[i].Suit < a[j].Suit
+// }
 
-func New() []Card {
+func New(options ...func([]Card) []Card) []Card {
 	deck := make([]Card, deckSize)
 
 	var i int
@@ -78,5 +83,32 @@ func New() []Card {
 		}
 	}
 
+	for _, opt := range options {
+		deck = opt(deck)
+	}
+
 	return deck
+}
+
+// WithJokers returns a func that adds j-many jokers to deck.
+func WithJokers(j int) func([]Card) []Card {
+	return func(deck []Card) []Card {
+		for i := 0; i < j; i++ {
+			deck = append(deck, Card{Suit: Joker, Rank: 0}) // What should be Joker's Rank???
+		}
+		return deck
+	}
+}
+
+// DeckSorter is a user-defined function
+// that wraps a less func in closure
+// whose signature matches that of sort.Interface Less function
+type DeckSorter func([]Card) func(i, j int) bool
+
+func WithSort(sorter DeckSorter) func([]Card) []Card {
+	return func(deck []Card) []Card {
+		lessFn := sorter(deck)
+		sort.Slice(deck, lessFn)
+		return deck
+	}
 }
