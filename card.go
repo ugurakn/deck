@@ -123,81 +123,98 @@ func WithSorter(sorter DeckSorter) func([]Card) []Card {
 	}
 }
 
-type SortConfig struct {
-	// suits are sorted in the order they are found in Suits
-	// e.g. the suit at Suits[0] is sorted before the one at Suits[1]
-	Suits []Suit
-	// sort ranks in descending order if set to true.
-	// default is sort in ascending order.
-	RanksDesc bool
-	// the deck is sorted by rank if set to true. default is sort by suit.
-	ByRank bool
-}
-
-// WithSortBy allows sorting by a user-defined order.
-// Check out SortConfig for details.
-func WithSortBy(sc SortConfig) func([]Card) []Card {
-	type cOrder struct {
-		Card
-		order int
-	}
-
-	setOrder := func(c cOrder) cOrder {
-		switch c.Suit {
-		case sc.Suits[0]:
-			c.order = 0
-		case sc.Suits[1]:
-			c.order = 1
-		case sc.Suits[2]:
-			c.order = 2
-		case sc.Suits[3]:
-			c.order = 3
-		case sc.Suits[4]:
-			c.order = 4
-		}
-		return c
-	}
-
-	lessWrapper := func(d []Card) func(i int, j int) bool {
-		return func(i int, j int) bool {
-			ci, cj := cOrder{d[i], 0}, cOrder{d[j], 0}
-			ci, cj = setOrder(ci), setOrder(cj)
-
-			// sort by rank
-			if sc.ByRank {
-				if ci.Rank == cj.Rank {
-					return ci.order < cj.order
-				}
-				if sc.RanksDesc {
-					return ci.Rank > cj.Rank
-				} else {
-					return ci.Rank < cj.Rank
-				}
-			}
-
-			// sort by suit
-			if ci.Suit == cj.Suit {
-				if sc.RanksDesc {
-					return ci.Rank > cj.Rank
-				} else {
-					return ci.Rank < cj.Rank
-				}
-			}
-			return ci.order < cj.order
-		}
-	}
-
-	return func(d []Card) []Card {
-		sort.Slice(d, lessWrapper(d))
-		return d
-	}
-}
-
-// Shuffle
-
+// Shuffle shuffles the deck d (or any slice of cards).
 func Shuffle(d []Card) []Card {
 	rand.Shuffle(len(d), func(i, j int) {
 		d[i], d[j] = d[j], d[i]
 	})
 	return d
 }
+
+// ShuffleP shuffles the deck d like Shuffle
+// but instead uses rand.Perm.
+// func ShuffleP(d []Card, rnd *rand.Rand) []Card {
+// 	shfDeck := make([]Card, len(d))
+
+// 	for i, c := range rnd.Perm(len(d)) {
+// 		shfDeck[i] = d[c]
+// 	}
+
+// 	return shfDeck
+// }
+
+// type SortConfig struct {
+// 	// suits are sorted in the order they are found in Suits
+// 	// e.g. the suit at Suits[0] is sorted before the one at Suits[1]
+// 	// if Suits == nil, the default order is used.
+// 	Suits []Suit
+// 	// sort ranks in descending order if set to true.
+// 	// default is sort in ascending order.
+// 	RanksDesc bool
+// 	// the deck is sorted by rank if set to true. default is sort by suit.
+// 	ByRank bool
+// }
+
+// WithSortBy allows sorting by a user-defined order.
+// Check out SortConfig for details.
+// func WithSortBy(sc SortConfig) func([]Card) []Card {
+// 	type cOrder struct {
+// 		Card
+// 		order int
+// 	}
+
+// 	setOrder := func(c cOrder) cOrder {
+// 		if sc.Suits == nil || len(sc.Suits) != 5 {
+// 			sc.Suits = suits[:]
+// 			sc.Suits = append(sc.Suits, Joker)
+// 		}
+
+// 		switch c.Suit {
+// 		case sc.Suits[0]:
+// 			c.order = 0
+// 		case sc.Suits[1]:
+// 			c.order = 1
+// 		case sc.Suits[2]:
+// 			c.order = 2
+// 		case sc.Suits[3]:
+// 			c.order = 3
+// 		case sc.Suits[4]:
+// 			c.order = 4
+// 		}
+// 		return c
+// 	}
+
+// 	lessWrapper := func(d []Card) func(i int, j int) bool {
+// 		return func(i int, j int) bool {
+// 			ci, cj := cOrder{d[i], 0}, cOrder{d[j], 0}
+// 			ci, cj = setOrder(ci), setOrder(cj)
+
+// 			// sort by rank
+// 			if sc.ByRank {
+// 				if ci.Rank == cj.Rank {
+// 					return ci.order < cj.order
+// 				}
+// 				if sc.RanksDesc {
+// 					return ci.Rank > cj.Rank
+// 				} else {
+// 					return ci.Rank < cj.Rank
+// 				}
+// 			}
+
+// 			// sort by suit
+// 			if ci.Suit == cj.Suit {
+// 				if sc.RanksDesc {
+// 					return ci.Rank > cj.Rank
+// 				} else {
+// 					return ci.Rank < cj.Rank
+// 				}
+// 			}
+// 			return ci.order < cj.order
+// 		}
+// 	}
+
+// 	return func(d []Card) []Card {
+// 		sort.Slice(d, lessWrapper(d))
+// 		return d
+// 	}
+// }

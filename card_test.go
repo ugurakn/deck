@@ -1,6 +1,8 @@
 package deck
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestCardStringer(t *testing.T) {
 	testCases := []struct {
