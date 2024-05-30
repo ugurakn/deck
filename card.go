@@ -89,11 +89,17 @@ func New(options ...func([]Card) []Card) []Card {
 		}
 	}
 
+	deck = DefaultSort(deck)
+
 	for _, opt := range options {
 		deck = opt(deck)
 	}
 
 	return deck
+}
+
+func getAbsRank(c Card) int {
+	return int(c.Suit)*int(maxRank) + int(c.Rank)
 }
 
 // WithJokers wraps in closure a func that appends j-many jokers to deck.
@@ -106,15 +112,21 @@ func WithJokers(j int) func([]Card) []Card {
 	}
 }
 
+// DefaultSort
+func DefaultSort(cards []Card) []Card {
+	sort.Slice(cards, func(i, j int) bool {
+		return getAbsRank(cards[i]) < getAbsRank(cards[j])
+	})
+	return cards
+}
+
 // DeckSorter is a user-defined function
-// that wraps a less func in closure
-// whose signature must match that of sort.Interface Less function
+// that wraps a less func in closure whose signature
+// must match that of [sort.Interface.Less]
 type DeckSorter func([]Card) func(i, j int) bool
 
 // WithSorter wraps in closure a func that sorts the deck
 // using the user-defined less func that sorter returns.
-// Use WithSorter to implement a custom sorting that
-// WithSortBy can't provide.
 func WithSorter(sorter DeckSorter) func([]Card) []Card {
 	return func(deck []Card) []Card {
 		lessFn := sorter(deck)
