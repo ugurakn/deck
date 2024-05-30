@@ -112,6 +112,22 @@ func WithJokers(j int) func([]Card) []Card {
 	}
 }
 
+// WithFilter returns a function that calls the passed
+// filter func on each card in the deck.
+// The user-provided filter func must return false
+// for the cards that are to be filtered out.
+func WithFilter(filter func(Card) bool) func([]Card) []Card {
+	return func(d []Card) []Card {
+		filteredDeck := make([]Card, 0)
+		for _, c := range d {
+			if ok := filter(c); ok {
+				filteredDeck = append(filteredDeck, c)
+			}
+		}
+		return filteredDeck
+	}
+}
+
 // DefaultSort
 func DefaultSort(cards []Card) []Card {
 	sort.Slice(cards, func(i, j int) bool {

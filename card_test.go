@@ -1,6 +1,7 @@
 package deck
 
 import (
+	"slices"
 	"testing"
 )
 
@@ -77,5 +78,59 @@ func TestDefaultSort(t *testing.T) {
 		if got := d[tc.i]; got != tc.expect {
 			t.Fatalf("expected %v at index [%v], got %v.", tc.expect, tc.i, got)
 		}
+	}
+}
+
+func TestWithFilter(t *testing.T) {
+	filt234 := func(c Card) bool {
+		if c.Rank == 2 || c.Rank == 3 || c.Rank == 4 {
+			return false
+		}
+		return true
+	}
+
+	filtSpade := func(c Card) bool {
+		return c.Suit != Spade
+	}
+
+	filtD_Ace := func(c Card) bool {
+		return c.Suit != Diamond && c.Rank != Ace
+	}
+
+	testCases := []struct {
+		fRank []Rank
+		fSuit []Suit
+		fFn   func(c Card) bool
+		name  string
+	}{
+		{
+			fRank: []Rank{Two, Three, Four},
+			fSuit: []Suit{},
+			fFn:   filt234,
+			name:  "filter out ranks 2, 3, 4",
+		},
+		{
+			fRank: []Rank{},
+			fSuit: []Suit{Spade},
+			fFn:   filtSpade,
+			name:  "filter out spades",
+		},
+		{
+			fRank: []Rank{Ace},
+			fSuit: []Suit{Diamond, Heart}, // only D
+			fFn:   filtD_Ace,
+			name:  "filter out diamonds and aces",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := New(WithFilter(tc.fFn))
+			for _, c := range d {
+				if slices.Contains(tc.fRank, c.Rank) || slices.Contains(tc.fSuit, c.Suit) {
+					t.Fatalf("expected rank(s) %v & suit(s) %v filtered out, found %v", tc.fRank, tc.fSuit, c)
+				}
+			}
+		})
 	}
 }
