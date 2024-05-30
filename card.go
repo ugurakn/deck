@@ -21,7 +21,7 @@ const (
 	Joker // special
 )
 
-// card ranks Ace, Two,...,Ten, J, Q, K.
+// Card ranks Ace, Two,...,Ten, J, Q, K.
 type Rank uint8
 
 const (
@@ -45,6 +45,9 @@ var suits = [...]Suit{Spade, Diamond, Club, Heart}
 
 // var ranks = [...]Rank{Ace, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, J, Q, K}
 
+// minRank and maxRank facilitate looping over Rank consts.
+// They are also used for getting
+// absolute rank values (for sorting).
 const (
 	minRank = Ace
 	maxRank = K
@@ -62,20 +65,10 @@ func (c Card) String() string {
 	return fmt.Sprintf("%s of %ss", c.Rank, c.Suit)
 }
 
-// type SortByRank []Card
-
-// func (a SortByRank) Len() int      { return len(a) }
-// func (a SortByRank) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-// func (a SortByRank) Less(i, j int) bool {
-// 	if a[i].Suit == a[j].Suit {
-// 		return a[i].Rank < a[j].Rank
-// 	}
-// 	return a[i].Suit < a[j].Suit
-// }
-
 // New returns a new deck as a slice of cards.
 // With no options specified, it will be a standard
-// 52-card deck sorted Spade, Diamond, Club, Hearts
+// 52-card deck sorted (via DefaultSort)
+// Spade, Diamond, Club, Hearts
 // with ranks in each suit sorted in ascending order
 // (A, 2,...,10, J, Q, K).
 func New(options ...func([]Card) []Card) []Card {
@@ -98,11 +91,15 @@ func New(options ...func([]Card) []Card) []Card {
 	return deck
 }
 
+// getAbsRank returns an absolute rank value for c.
+// It is used by DefaultSort.
 func getAbsRank(c Card) int {
 	return int(c.Suit)*int(maxRank) + int(c.Rank)
 }
 
-// WithJokers wraps in closure a func that appends j-many jokers to deck.
+// WithJokers wraps in closure a func
+// (which is called by New)
+// that appends j-many jokers to deck.
 func WithJokers(j int) func([]Card) []Card {
 	return func(deck []Card) []Card {
 		for i := 0; i < j; i++ {
@@ -112,10 +109,11 @@ func WithJokers(j int) func([]Card) []Card {
 	}
 }
 
-// WithFilter returns a function that calls the passed
-// filter func on each card in the deck.
-// The user-provided filter func must return false
-// for the cards that are to be filtered out.
+// WithFilter returns a function
+// (which is called by New) that calls
+// filter on each card in the deck.
+// The filter func must return false
+// for cards that are to be filtered out.
 func WithFilter(filter func(Card) bool) func([]Card) []Card {
 	return func(d []Card) []Card {
 		filteredDeck := make([]Card, 0)
@@ -128,7 +126,7 @@ func WithFilter(filter func(Card) bool) func([]Card) []Card {
 	}
 }
 
-// DefaultSort
+// DefaultSort sorts cards as described in New.
 func DefaultSort(cards []Card) []Card {
 	sort.Slice(cards, func(i, j int) bool {
 		return getAbsRank(cards[i]) < getAbsRank(cards[j])
@@ -136,13 +134,15 @@ func DefaultSort(cards []Card) []Card {
 	return cards
 }
 
-// DeckSorter is a user-defined function
+// DeckSorter defines a user-provided function
 // that wraps a less func in closure whose signature
-// must match that of [sort.Interface.Less]
+// must match that of [sort.Interface.Less].
 type DeckSorter func([]Card) func(i, j int) bool
 
-// WithSorter wraps in closure a func that sorts the deck
-// using the user-defined less func that sorter returns.
+// WithSorter wraps in closure a func
+// (which is called by New)
+// that sorts the deck using the user-defined
+// less func that sorter returns.
 func WithSorter(sorter DeckSorter) func([]Card) []Card {
 	return func(deck []Card) []Card {
 		lessFn := sorter(deck)
@@ -151,7 +151,7 @@ func WithSorter(sorter DeckSorter) func([]Card) []Card {
 	}
 }
 
-// Shuffle shuffles the deck d (or any slice of cards).
+// Shuffle shuffles d using [rand.Shuffle].
 func Shuffle(d []Card) []Card {
 	rand.Shuffle(len(d), func(i, j int) {
 		d[i], d[j] = d[j], d[i]
@@ -169,80 +169,4 @@ func Shuffle(d []Card) []Card {
 // 	}
 
 // 	return shfDeck
-// }
-
-// type SortConfig struct {
-// 	// suits are sorted in the order they are found in Suits
-// 	// e.g. the suit at Suits[0] is sorted before the one at Suits[1]
-// 	// if Suits == nil, the default order is used.
-// 	Suits []Suit
-// 	// sort ranks in descending order if set to true.
-// 	// default is sort in ascending order.
-// 	RanksDesc bool
-// 	// the deck is sorted by rank if set to true. default is sort by suit.
-// 	ByRank bool
-// }
-
-// WithSortBy allows sorting by a user-defined order.
-// Check out SortConfig for details.
-// func WithSortBy(sc SortConfig) func([]Card) []Card {
-// 	type cOrder struct {
-// 		Card
-// 		order int
-// 	}
-
-// 	setOrder := func(c cOrder) cOrder {
-// 		if sc.Suits == nil || len(sc.Suits) != 5 {
-// 			sc.Suits = suits[:]
-// 			sc.Suits = append(sc.Suits, Joker)
-// 		}
-
-// 		switch c.Suit {
-// 		case sc.Suits[0]:
-// 			c.order = 0
-// 		case sc.Suits[1]:
-// 			c.order = 1
-// 		case sc.Suits[2]:
-// 			c.order = 2
-// 		case sc.Suits[3]:
-// 			c.order = 3
-// 		case sc.Suits[4]:
-// 			c.order = 4
-// 		}
-// 		return c
-// 	}
-
-// 	lessWrapper := func(d []Card) func(i int, j int) bool {
-// 		return func(i int, j int) bool {
-// 			ci, cj := cOrder{d[i], 0}, cOrder{d[j], 0}
-// 			ci, cj = setOrder(ci), setOrder(cj)
-
-// 			// sort by rank
-// 			if sc.ByRank {
-// 				if ci.Rank == cj.Rank {
-// 					return ci.order < cj.order
-// 				}
-// 				if sc.RanksDesc {
-// 					return ci.Rank > cj.Rank
-// 				} else {
-// 					return ci.Rank < cj.Rank
-// 				}
-// 			}
-
-// 			// sort by suit
-// 			if ci.Suit == cj.Suit {
-// 				if sc.RanksDesc {
-// 					return ci.Rank > cj.Rank
-// 				} else {
-// 					return ci.Rank < cj.Rank
-// 				}
-// 			}
-// 			return ci.order < cj.order
-// 		}
-// 	}
-
-// 	return func(d []Card) []Card {
-// 		sort.Slice(d, lessWrapper(d))
-// 		return d
-// 	}
 // }
