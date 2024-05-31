@@ -71,6 +71,7 @@ func (c Card) String() string {
 // Spade, Diamond, Club, Hearts
 // with ranks in each suit sorted in ascending order
 // (A, 2,...,10, J, Q, K).
+// options are called in the order they were passed.
 func New(options ...func([]Card) []Card) []Card {
 	deck := make([]Card, deckSize)
 
@@ -106,6 +107,24 @@ func WithJokers(j int) func([]Card) []Card {
 			deck = append(deck, Card{Suit: Joker, Rank: 0}) // What should be Joker's Rank???
 		}
 		return deck
+	}
+}
+
+// WithExtraDecks appends k-many
+// copies of the deck to the deck.
+// Panics if k < 0.
+func WithExtraDecks(k int) func([]Card) []Card {
+	if k < 0 {
+		panic("deck.WithExtraDecks: k cannot be negative.")
+	}
+	return func(d []Card) []Card {
+		cpy := make([]Card, len(d))
+		copy(cpy, d)
+
+		for i := 0; i < k; i++ {
+			d = append(d, cpy...)
+		}
+		return d
 	}
 }
 

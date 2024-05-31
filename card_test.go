@@ -117,7 +117,7 @@ func TestWithFilter(t *testing.T) {
 		},
 		{
 			fRank: []Rank{Ace},
-			fSuit: []Suit{Diamond, Heart}, // only D
+			fSuit: []Suit{Diamond},
 			fFn:   filtD_Ace,
 			name:  "filter out diamonds and aces",
 		},
@@ -130,6 +130,28 @@ func TestWithFilter(t *testing.T) {
 				if slices.Contains(tc.fRank, c.Rank) || slices.Contains(tc.fSuit, c.Suit) {
 					t.Fatalf("expected rank(s) %v & suit(s) %v filtered out, found %v", tc.fRank, tc.fSuit, c)
 				}
+			}
+		})
+	}
+}
+
+func TestWithExtraDecks(t *testing.T) {
+	testCases := []struct {
+		deck      []Card
+		expectLen int
+		name      string
+	}{
+		{New(WithExtraDecks(0)), deckSize, "extra_decks_0"},
+		{New(WithExtraDecks(1)), deckSize * 2, "extra_decks_1"},
+		{New(WithExtraDecks(2)), deckSize * 3, "extra_decks_2"},
+		{New(WithJokers(2), WithExtraDecks(1)), (deckSize + 2) * 2, "jokers_2_extra_decks_1"},
+		{New(WithExtraDecks(1), WithJokers(4)), deckSize*2 + 4, "extra_decks_1_jokers_4"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if len(tc.deck) != tc.expectLen {
+				t.Errorf("expected deck length to be %v, got %v", len(tc.deck), tc.expectLen)
 			}
 		})
 	}
