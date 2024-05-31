@@ -1,2 +1,4 @@
 main/
 cards.txt
+actions.go
+actions_test.go

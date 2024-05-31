@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"time"
 )
 
 const deckSize = 52
@@ -170,9 +171,11 @@ func WithSorter(sorter DeckSorter) func([]Card) []Card {
 	}
 }
 
+var shuffleRand = rand.New(rand.NewSource(time.Now().Unix()))
+
 // Shuffle shuffles d using [rand.Shuffle].
 func Shuffle(d []Card) []Card {
-	rand.Shuffle(len(d), func(i, j int) {
+	shuffleRand.Shuffle(len(d), func(i, j int) {
 		d[i], d[j] = d[j], d[i]
 	})
 	return d

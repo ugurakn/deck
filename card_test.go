@@ -1,6 +1,7 @@
 package deck
 
 import (
+	"math/rand"
 	"slices"
 	"testing"
 )
@@ -24,19 +25,24 @@ func TestCardStringer(t *testing.T) {
 	}
 }
 
-// func TestShuffleModifyOrig(t *testing.T) {
-// 	d := New()
-// 	shf := make([]Card, len(d))
-// 	copy(shf, d)
-// 	shf = Shuffle(shf)
+func TestShuffle(t *testing.T) {
+	shuffleRand = rand.New(rand.NewSource(0))
+	d1 := New()
+	d1 = Shuffle(d1)
 
-// 	for i, c := range d {
-// 		if c.String() != shf[i].String() {
-// 			fmt.Printf("card mismatch at [%v]: \"%v\" \"%v\"\n", i, c.String(), shf[i].String())
-// 			t.FailNow()
-// 		}
-// 	}
-// }
+	shuffleRand = rand.New(rand.NewSource(0))
+	d2 := New()
+	d2 = Shuffle(d2)
+
+	for i, c1 := range d1 {
+		if c2 := d2[i]; c1 != c2 {
+			t.Fatalf(
+				"decks shuffled with the same seed are different (index %v): expected %v, got %v",
+				i, c1, c2,
+			)
+		}
+	}
+}
 
 func TestJokers(t *testing.T) {
 	numOfJokers := 4
